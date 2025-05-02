@@ -10,6 +10,7 @@ const { checkForUpdates } = require("@helpers/BotUtils");
 const { initializeMongoose } = require("@src/database/mongoose");
 const { BotClient } = require("@src/structures");
 const { validateConfiguration } = require("@helpers/Validator");
+const { REST, Routes } = require('discord.js');
 
 validateConfiguration();
 
@@ -44,4 +45,20 @@ process.on("unhandledRejection", (err) => client.logger.error(`Unhandled excepti
 
   // start the client
   await client.login(process.env.BOT_TOKEN);
+
+  // === Register slash commands ===
+  const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+
+  try {
+    client.logger.log('Started refreshing application (/) commands.');
+
+    await rest.put(
+      Routes.applicationCommands(client.user.id),
+      { body: client.commands.map(cmd => cmd.data.toJSON()) }
+    );
+
+    client.logger.log('Successfully reloaded application (/) commands.');
+  } catch (error) {
+    client.logger.error('Error registering slash commands:', error);
+  }
 })();
